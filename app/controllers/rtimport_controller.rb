@@ -50,9 +50,11 @@ class RtimportController < ApplicationController
           @project.name = ele.elements["Name"].text #'XML import project'
           @project.identifier = prefix 
           @project.description = "imported"
-          @project.save
+          @project.save!
         end
 
+# 2012-06-21/AWB: Don't import users (this needs to be smarter and handle things like "Jr. Software Engineer")
+=begin
         ele.each_element('//Resource') {
           |child|
 
@@ -72,14 +74,19 @@ class RtimportController < ApplicationController
             end
 
             @user.rt_uid = child.elements["UID"].text
-            @user.save
+            @user.save!
           end
         }
+=end
 
         ele.each_element('//Task') {
           |child|
 
-          if child.elements["Summary"].text == "1"
+
+          # 2012-06-21/AWB: Use one project for all issues regardelss of Summary or Milestone flags.  Garbage in, not-as-much garbage out.
+
+          if false && child.elements["Summary"].text == "1"
+=begin
             @subproject = Project.find_by_identifier(prefix + child.elements["UID"].text)
             if @subproject.nil?
               @subproject = Project.new
@@ -93,7 +100,7 @@ class RtimportController < ApplicationController
             @subproject.identifier = prefix + child.elements["UID"].text
             @subproject.rt_wbs = prefix + child.elements["WBS"].text
             @subproject.description = "imported"
-            @subproject.save
+            @subproject.save!
 
             if child.elements["WBS"].text.size > 1
               wbs_arr = child.elements["WBS"].text.split(".")
@@ -104,18 +111,16 @@ class RtimportController < ApplicationController
             else
               @subproject.set_allowed_parent!(@project.id) if !@project.nil?  
             end
-
-
-# TODO: resources. if task has two, split the task
-
+=end
           else # this is issue, but another else should be here for milestones which will become versions (child.elements["Milestone"].text == "1")
+
+            # TODO: resources. if task has two, split the task
+            # Above applies only if assignments are being imported, which I've disabled -2012-06-21/AWB
 
             @issue = Issue.find_by_rt_identifier(prefix + child.elements["UID"].text)
             if @issue.nil?
-
               logger.info "creating new issue"
               @issue = Issue.new
-
             end
 
             @issue.subject = child.elements["Name"].text
@@ -134,24 +139,28 @@ class RtimportController < ApplicationController
               @issue.priority_id = 7
             end
 
+            # 2012-06-21: Don't have is_private in ChiliProject 2.6.0.495e57d57
             #@issue.is_private = 0
-            @issue.tracker_id = 4
+            @issue.tracker_id = 1
             @issue.author_id = 1
             @issue.done_ratio = child.elements["PercentComplete"].text
             @issue.rt_wbs = prefix + child.elements["WBS"].text
+
             #put a relation based on WBS
             wbs_arr = child.elements["WBS"].text.split(".")
             wbs_arr.pop
             prev_wbs = wbs_arr.join(".")
-            @rel_project = Project.find_by_rt_wbs(prefix + prev_wbs)
-            if !@rel_project.nil?
-              @issue.project_id = @rel_project.id
-            end
-
             @rel_issue = Issue.find_by_rt_wbs(prefix + prev_wbs)
             if !@rel_issue.nil?
               @issue.parent_issue_id = @rel_issue.id
             end
+
+            # 2012-06-21/AWB: Use one project for all issues (which we already have in memory)
+            @issue.project_id = @project.id
+            # @rel_project = Project.find_by_rt_wbs(prefix + prev_wbs)
+            # if !@rel_project.nil?
+            #   @issue.project_id = @rel_project.id
+            # end
             
             @issue.start_date = child.elements["Start"].text[0..10]
             @issue.due_date = child.elements["Finish"].text[0..10]
@@ -164,22 +173,13 @@ class RtimportController < ApplicationController
             @issue.rt_identifier = prefix + child.elements["UID"].text
             @issue.description = ""
 
-            @issue.save
+            @issue.save!
 
           end
         }
 
-
-        #@project.save
-        #@parent_project = Project.find_by_identifier(prefix + ele.attributes["parent_id"]) if 
-!ele.attributes["parent_id"].nil?
-        #@project.set_allowed_parent!(@parent_project.id) if !@parent_project.nil?
-
-
-        #ele.each_child do |child|
-        #  logger.info "#{child.name} => #{child.text}"          
-        #end
-
+# Don't import assignments (users-to-issues)
+=begin
         @user_issues = Hash.new
 
         ele.each_element('//Assignment') {
@@ -203,7 +203,6 @@ class RtimportController < ApplicationController
             @user = User.find_by_rt_uid(user_uid)
 
             if @issues[index].nil?
-=begin
               @new_issue = Issue.new
 
               @new_issue.subject = @issues[0].subject
@@ -233,14 +232,14 @@ class RtimportController < ApplicationController
               @new_issue.assigned_to_id = @user.id
 
               @new_issue.save
-=end
 
             else  
               @issues[index].assigned_to_id = @user.id
-              @issues[index].save
+              @issues[index].save!
             end
           end
         end
+=end
 
 
       end
