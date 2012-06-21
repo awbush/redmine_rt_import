@@ -203,7 +203,7 @@ class RtimportController < ApplicationController
             @user = User.find_by_rt_uid(user_uid)
 
             if @issues[index].nil?
-
+=begin
               @new_issue = Issue.new
 
               @new_issue.subject = @issues[0].subject
@@ -233,7 +233,7 @@ class RtimportController < ApplicationController
               @new_issue.assigned_to_id = @user.id
 
               @new_issue.save
-
+=end
 
             else  
               @issues[index].assigned_to_id = @user.id
