@@ -134,7 +134,7 @@ class RtimportController < ApplicationController
               @issue.priority_id = 7
             end
 
-            @issue.is_private = 0
+            #@issue.is_private = 0
             @issue.tracker_id = 4
             @issue.author_id = 1
             @issue.done_ratio = child.elements["PercentComplete"].text
