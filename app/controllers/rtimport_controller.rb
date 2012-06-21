@@ -56,7 +56,7 @@ class RtimportController < ApplicationController
         ele.each_element('//Resource') {
           |child|
 
-          if !child.elements["Name"].nil?
+          if !child.elements["Name"].nil? && child.elements["Name"].has_text? && !child.elements["Name"].text.empty?
             name_arr = child.elements["Name"].text.split(" ")
             firstname = name_arr[0]
             lastname = name_arr[1]
